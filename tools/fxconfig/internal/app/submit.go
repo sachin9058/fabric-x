@@ -32,8 +32,8 @@ func (d *AdminApp) SubmitTransaction(ctx context.Context, txID string, tx *appli
 		_ = sc.ordererClient.Close()
 	}()
 
-	if err := sc.ordererClient.Broadcast(ctx, sc.signingIdentity, txID, tx); err != nil {
-		return fmt.Errorf("failed to broadcast transaction: %w", err)
+	if err := d.broadcastTransaction(ctx, sc, txID, tx); err != nil {
+		return err
 	}
 
 	return nil
@@ -65,8 +65,8 @@ func (d *AdminApp) SubmitTransactionWithWait(ctx context.Context, txID string, t
 		return UnknownStatus, fmt.Errorf("failed to subscribe to transaction events: %w", err)
 	}
 
-	if err := sc.ordererClient.Broadcast(ctx, sc.signingIdentity, txID, tx); err != nil {
-		return UnknownStatus, fmt.Errorf("failed to broadcast transaction: %w", err)
+	if err := d.broadcastTransaction(ctx, sc, txID, tx); err != nil {
+		return UnknownStatus, err
 	}
 
 	status, err := nc.WaitForEvent(ctx, subscription)
@@ -80,6 +80,19 @@ func (d *AdminApp) SubmitTransactionWithWait(ctx context.Context, txID string, t
 type submissionContext struct {
 	signingIdentity msp.SigningIdentity
 	ordererClient   adapters.OrdererClient
+}
+
+func (d *AdminApp) broadcastTransaction(
+	ctx context.Context,
+	sc *submissionContext,
+	txID string,
+	tx *applicationpb.Tx,
+) error {
+	if err := sc.ordererClient.Broadcast(ctx, sc.signingIdentity, txID, tx); err != nil {
+		return fmt.Errorf("failed to broadcast transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (d *AdminApp) prepareSubmission(_ context.Context) (*submissionContext, error) {
