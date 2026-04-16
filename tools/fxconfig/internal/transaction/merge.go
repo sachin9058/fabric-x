@@ -27,7 +27,7 @@ func Merge(txs []*applicationpb.Tx) (*applicationpb.Tx, error) {
 	}
 
 	if err := validateTransactionsForMerge(txs); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to merge %d transactions: %w", len(txs), err)
 	}
 
 	merged := proto.CloneOf(txs[0])
